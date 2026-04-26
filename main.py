@@ -1,3 +1,5 @@
+from aiohttp import web
+import os
 import asyncio
 import os
 import logging
@@ -233,9 +235,26 @@ async def cancel_booking(message: types.Message, state: FSMContext):
 async def echo_message(message: types.Message):
     await message.answer("Iltimos, bron qilish uchun ovozli xabar yuboring 🎙")
 
+# --- RENDER UCHUN SOXTA (DUMMY) VEB SERVER ---
+async def health_check(request):
+    return web.Response(text="Bot muvaffaqiyatli ishlamoqda!")
+
 async def main():
-    print("Bot ishga tushdi! Ovozli xabar kutmoqda...")
-    await bot.delete_webhook(drop_pending_updates=True)
+    # 1. Render talab qilgan portni ochamiz
+    app = web.Application()
+    app.router.add_get('/', health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
+    # Render o'zi beradigan portni olamiz, topolmasa 10000 ishlatamiz
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    logging.info(f"Soxta veb-server {port}-portda ishga tushdi...")
+    
+    # 2. Asosiy botimizni ishga tushiramiz
+    logging.info("Telegram bot ishga tushmoqda...")
+    await bot.delete_webhook(drop_pending_updates=True) # Sizning kodingiz saqlab qolindi
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
