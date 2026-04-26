@@ -1,0 +1,10 @@
+# Maxfiy kalitlar
+.env
+
+# Virtual muhit
+venv/
+env/
+
+# Vaqtinchalik fayllar
+temp/
+__pycache__/
