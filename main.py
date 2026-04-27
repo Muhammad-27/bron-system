@@ -5,7 +5,7 @@ from aiohttp import web
 
 # O'zimiz yaratgan fayllardan kerakli narsalarni chaqiramiz
 from config import bot, dp
-from handlers import basic_router, web_app_router, ai_router
+from handlers import basic_router, web_app_router, ai_router ,admin_router
 
 # --- RENDER UCHUN SOXTA (DUMMY) VEB SERVER ---
 async def health_check(request):
@@ -15,6 +15,7 @@ async def main():
     # 1. Barcha Routerlarni (mantiqlarni) Asosiy Dispatcher'ga ulaymiz
     dp.include_router(basic_router)
     dp.include_router(web_app_router)
+    dp.include_router(admin_router)
     dp.include_router(ai_router)
 
     # 2. Render talab qilgan portni ochamiz (Web Server)

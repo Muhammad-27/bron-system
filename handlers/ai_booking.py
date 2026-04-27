@@ -15,14 +15,20 @@ ai_router = Router()
 @ai_router.message(StateFilter(None), F.voice | F.text)
 async def handle_voice_or_text(message: types.Message, state: FSMContext):
     
-    # Asosiy menyu tugmalari bosilganda bu funksiya ularni "Bron" deb o'ylamasligi uchun himoya
-    if message.text in ["📋 Mening bronlarim", "📱 Telefon raqamni yuborish", "🖥 Klub xaritasi"]:
+    # 🛑 ADMIN UCHUN AI NI TO'LIQ BLOKLASH
+    if str(message.from_user.id) == str(ADMIN_ID):
+        return
+
+    # Agar xabar "/" bilan boshlansa yoki menyu tugmalari bosilsa, AI o'qimaydi
+    if message.text and (message.text.startswith("/") or message.text in ["📋 Mening bronlarim", "📱 Telefon raqamni yuborish", "🖥 Klub xaritasi"]):
         return
 
     wait_msg = await message.answer("⏳ Ma'lumot qabul qilindi. Tahlil qilinmoqda...")
+    # ... (qolgan kodlar o'zgarishsiz qoladi)
 
     try:
         recognized_text = ""
+        # ... qolgan kodlar o'zgarishsiz qoladi ...
         
         # Agar xabar OVOZLI bo'lsa
         if message.voice:
