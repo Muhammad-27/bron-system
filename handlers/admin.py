@@ -1,6 +1,6 @@
 import logging
 from aiogram import Router, types, F
-from aiogram.filters import Command
+from aiogram.filters import Command,StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
@@ -39,11 +39,11 @@ async def cmd_admin(message: types.Message, state: FSMContext):
     )
 
 # --- 2. STATISTIKA QISMI ---
-@admin_router.message(F.text == "📊 Statistika")
-async def show_statistics(message: types.Message):
-    if not is_admin(message.from_user.id):
-        return
-        
+@admin_router.message(F.text == "📊 Statistika", StateFilter("*"))
+async def show_statistics(message: types.Message, state: FSMContext): # <-- state qo'shildi
+    if not is_admin(message.from_user.id): return
+    await state.clear() # <-- Va bu qo'shildi
+    
     wait_msg = await message.answer("⏳ Ma'lumotlar bazadan yig'ilmoqda...")
     
     try:
@@ -71,8 +71,8 @@ async def show_statistics(message: types.Message):
         await wait_msg.edit_text("❌ Ma'lumotlarni olishda xatolik yuz berdi.")
         logging.error(f"Statistika xatosi: {e}")
         
-# --- 3. FAOL BRONLARNI BEKOR QILISH (Uzluksiz rejim) ---
-@admin_router.message(F.text == "❌ Faol bronlarni bekor qilish")
+# --- 3. FAOL BRONLARNI BEKOR QILISH ---
+@admin_router.message(F.text == "❌ Faol bronlar", StateFilter("*"))
 async def cancel_bookings_menu(message: types.Message, state: FSMContext):
     if not is_admin(message.from_user.id): return
     await state.clear()
@@ -117,7 +117,7 @@ async def process_cancel_id(message: types.Message, state: FSMContext):
 
 
 # --- 4. KOMPYUTERLAR BOSHQARUVI (Narx va Holat) ---
-@admin_router.message(F.text == "💻 Kompyuterlar")
+@admin_router.message(F.text == "💻 Kompyuterlar", StateFilter("*"))
 async def computers_menu(message: types.Message, state: FSMContext):
     if not is_admin(message.from_user.id): return
     await state.clear()
