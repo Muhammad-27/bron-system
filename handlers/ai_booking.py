@@ -51,41 +51,57 @@ async def handle_voice_or_text(message: types.Message, state: FSMContext):
         elif message.text:
             recognized_text = message.text
 
-        # --- AI ga jo'natamiz ---
+     # --- AI ga jo'natamiz ---
         gpt_response = await ai_client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
                     "role": "system", 
                     "content": (
-                        "Siz kompyuter klubi uchun aqlli bron yordamchisisiz. "
-                        "Quyidagi qoidalarga QAT'IY amal qiling:\n\n"
-                        "1. Boshlanish vaqti: Matndagi vaqtni topib yozing.\n"
-                        "2. Tugash vaqti: FAQAT mijoz aniq aytgan bo'lsa yozing. Yo'qsa 'Aytilmagan' deb yozing.\n"
-                        "3. Kompyuterlar soni: Matndan raqamlarni qidiring. Aytilmagan bo'lsa '1 ta' deb oling.\n"
-                        "4. Zona/Izoh: Mijozning qo'shimcha talablari bo'lsa yozing, yo'qsa 'Ixtiyoriy'.\n\n"
-                        "Javobni qat'iy quyidagi formatda qaytaring:\n"
+                        "Siz kompyuter klubining aqlli va xushmuomala yordamchisisiz. Mijozning maqsadini aniqlang.\n\n"
+                        "1-QOIDA (BRON QILISH): Agar mijoz aniq joy bron qilmoqchi bo'lsa (vaqt, soat yoki kompyuter haqida gapirsa), javobni qat'iy 'BRON:' so'zi bilan boshlang va quyidagi formatda bering:\n"
+                        "BRON:\n"
                         "Boshlanish vaqti: [vaqt]\n"
-                        "Tugash vaqti: [vaqt yoki standart]\n"
-                        "Kompyuterlar soni: [soni]\n"
-                        "Izoh: [VIP/yonma-yon yoki Ixtiyoriy]"
+                        "Tugash vaqti: [vaqt yoki Aytilmagan]\n"
+                        "Kompyuterlar soni: [soni yoki 1 ta]\n"
+                        "Izoh: [VIP/yonma-yon yoki Ixtiyoriy]\n\n"
+                        "2-QOIDA (ODDIY SUHBAT): Agar mijoz shunchaki salomlashsa, savol bersa (narxlar qancha, qayerdasiz, qanday o'yinlar bor) yoki bron qilish niyati aniq bo'lmasa, 'BRON:' so'zini umuman ishlatmang! Javobni 'SUHBAT:' so'zi bilan boshlab, do'stona va qisqa javob qaytaring.\n"
+                        "Masalan: 'SUHBAT: Assalomu alaykum! Klubimizga xush kelibsiz. Bizda narxlar soatiga 15,000 so'm. Joy band qilishni xohlaysizmi?'"
                     )
                 },
                 {"role": "user", "content": recognized_text}
             ],
-            temperature=0.1
+            temperature=0.3
         )
-        parsed_data = gpt_response.choices[0].message.content
+        
+        parsed_data = gpt_response.choices[0].message.content.strip()
 
-        # State ga saqlaymiz va tasdiq kutamiz
-        await state.update_data(booking_info=parsed_data)
-        await state.set_state(BookingState.waiting_for_confirmation)
+        # --- JAVOBNI TEKSHIRAMIZ VA IKKIGA AJRATAMIZ ---
+        
+        # 1-Holat: Agar AI mijoz faqat gaplashmoqchi ekanligini tushunsa
+        if parsed_data.startswith("SUHBAT:"):
+            clean_reply = parsed_data.replace("SUHBAT:", "").strip()
+            await wait_msg.edit_text(clean_reply)
+            return # Dasturni shu yerda to'xtatamiz, bot "Tasdiqlash" rejimiga kirmaydi!
 
-        final_message = (
-            f"🤖 AI agent tushungan ma'lumot:\n\n<b>{parsed_data}</b>\n\n"
-            f"✅ Hammasi to'g'rimi? (Tasdiqlash uchun <b>ha</b> deb yozing)"
-        )
-        await wait_msg.edit_text(final_message, parse_mode="HTML")
+        # 2-Holat: Agar AI aniq bronni tushunsa
+        elif parsed_data.startswith("BRON:"):
+            clean_reply = parsed_data.replace("BRON:", "").strip()
+            
+            # State ga saqlaymiz va tasdiq kutamiz
+            await state.update_data(booking_info=clean_reply)
+            await state.set_state(BookingState.waiting_for_confirmation)
+
+            final_message = (
+                f"🤖 <b>AI agent tushungan ma'lumot:</b>\n\n"
+                f"{clean_reply}\n\n"
+                f"✅ Hammasi to'g'rimi? (Tasdiqlash uchun <b>ha</b> deb yozing)"
+            )
+            await wait_msg.edit_text(final_message, parse_mode="HTML")
+            
+        # 3-Holat: AI adashib boshqa narsa yuborsa (Himoya)
+        else:
+            await wait_msg.edit_text("Kechirasiz, xabaringizni to'liq tushuna olmadim. Iltimos, bron qilish maqsadingizni aniqroq yozing.")
 
     except Exception as e:
         await wait_msg.edit_text("❌ Tizimda kichik nosozlik yuz berdi. Iltimos, qayta urinib ko'ring.")
